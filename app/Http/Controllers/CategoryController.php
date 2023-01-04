@@ -26,42 +26,42 @@ class CategoryController extends Controller
       if (!$category) {
         return response()->json(['error' => 'Category not found'], 404);
       }
-      return $category;
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
+    return new CategoryResource($category);
   }
 
   public function store(Request $request)
   {
+    $validator = Validator::make($request->all(), [
+      'name' => 'required|string|max:255',
+      'info' => 'required|string',
+    ]);
+    if ($validator->fails()) {
+      return response()->json($validator->errors(), 400);
+    }
     try {
-      $validator = Validator::make($request->all(), [
-        'name' => 'required|string|max:255',
-        'info' => 'required|string',
-      ]);
-      if ($validator->fails()) {
-        return response()->json($validator->errors(), 400);
-      }
       $category = Category::create([
         'name' => $request->get('name'),
         'info' => $request->get('info')
       ]);
-      return new CategoryResource($category);
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
+    return new CategoryResource($category);
   }
 
   public function update(Request $request, $id)
   {
+    $validator = Validator::make($request->all(), [
+      'name' => 'nullable|string|max:255',
+      'info' => 'nullable|string',
+    ]);
+    if ($validator->fails()) {
+      return response()->json($validator->errors(), 400);
+    }
     try {
-      $validator = Validator::make($request->all(), [
-        'name' => 'nullable|string|max:255',
-        'info' => 'nullable|string',
-      ]);
-      if ($validator->fails()) {
-        return response()->json($validator->errors(), 400);
-      }
       $category = Category::find($id);
       if (!$category) {
         return response()->json(['error' => 'Category not found'], 404);
@@ -70,23 +70,23 @@ class CategoryController extends Controller
         'name' => $request->get('name') ?? $category->name,
         'info' => $request->get('info') ?? $category->info
       ]);
-      return new CategoryResource($category);
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
+    return new CategoryResource($category);
   }
 
   public function destroy($id)
   {
     try {
       $category = Category::find($id);
+      $category->delete();
       if (!$category) {
         return response()->json(['error' => 'Category not found'], 404);
       }
-      $category->delete();
-      return new  CategoryResource($category);
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
+    return new CategoryResource($category);
   }
 }
