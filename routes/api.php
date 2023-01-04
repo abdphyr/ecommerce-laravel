@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -12,4 +13,5 @@ Route::middleware(['auth.jwt'])->group(function () {
     Route::post('refreshToken', [AuthController::class, 'refreshToken']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('user', [AuthController::class, 'user']);
+    Route::resource('category', CategoryController::class);
 });
