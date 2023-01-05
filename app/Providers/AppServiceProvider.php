@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Http\Resources\CategoryResource;
+use App\Http\Resources\ImageResource;
+use App\Http\Resources\ProductResource;
 use App\Http\Resources\RoleResource;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\ServiceProvider;
@@ -29,5 +31,7 @@ class AppServiceProvider extends ServiceProvider
         CategoryResource::withoutWrapping();
         UserResource::withoutWrapping();
         RoleResource::withoutWrapping();
+        ProductResource::withoutWrapping();
+        ImageResource::withoutWrapping();
     }
 }
