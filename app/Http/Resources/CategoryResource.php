@@ -19,7 +19,7 @@ class CategoryResource extends JsonResource
             'name' => $this->name,
             'info' => $this->info,
             'created_at' => date('Y-m-d', strtotime($this->created_at)),
-            'image' => $this->image
+            'image' => new ImageResource($this->image)
         ];
     }
 }
