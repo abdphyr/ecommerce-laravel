@@ -12,8 +12,7 @@ class CategoryController extends Controller
   public function index()
   {
     try {
-      $categories = CategoryResource::collection(Category::all());
-      return $categories;
+      return CategoryResource::collection(Category::all());;
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
@@ -22,8 +21,7 @@ class CategoryController extends Controller
   public function show($id)
   {
     try {
-      $category = new CategoryResource(Category::find($id));
-      if (!$category) {
+      if (!$category = Category::find($id)) {
         return response()->json(['error' => 'Category not found'], 404);
       }
     } catch (\Throwable $th) {
@@ -43,8 +41,8 @@ class CategoryController extends Controller
     }
     try {
       $category = Category::create([
-        'name' => $request->get('name'),
-        'info' => $request->get('info')
+        'name' => $request->input('name'),
+        'info' => $request->input('info')
       ]);
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
@@ -62,13 +60,12 @@ class CategoryController extends Controller
       return response()->json($validator->errors(), 400);
     }
     try {
-      $category = Category::find($id);
-      if (!$category) {
+      if (!$category = Category::find($id)) {
         return response()->json(['error' => 'Category not found'], 404);
       }
       $category->update([
-        'name' => $request->get('name') ?? $category->name,
-        'info' => $request->get('info') ?? $category->info
+        'name' => $request->input('name') ?? $category->name,
+        'info' => $request->input('info') ?? $category->info
       ]);
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
@@ -79,11 +76,10 @@ class CategoryController extends Controller
   public function destroy($id)
   {
     try {
-      $category = Category::find($id);
-      $category->delete();
-      if (!$category) {
+      if (!$category = Category::find($id)) {
         return response()->json(['error' => 'Category not found'], 404);
       }
+      $category->delete();
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
