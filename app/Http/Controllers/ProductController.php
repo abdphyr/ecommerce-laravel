@@ -130,7 +130,7 @@ class ProductController extends Controller
         $product->tags()->attach($request->tags);
       }
       if ($images = $request->file('images')) {
-        Storage::delete($product->images->map(fn ($image) => $image->url)->all());
+        Storage::disk('public')->delete($product->images->map(fn ($image) => $image->url)->all());
         $product->images()->delete();
         foreach ($images as $image) {
           $name = $image->getClientOriginalName();
@@ -154,7 +154,7 @@ class ProductController extends Controller
       if (!$product = Product::find($id)) {
         return response()->json(['error' => 'Product not found'], 404);
       }
-      Storage::delete($product->images->map(fn ($image) => $image->url)->all());
+      Storage::disk('public')->delete($product->images->map(fn ($image) => $image->url)->all());
       $product->images()->delete();
       $product->delete();
     } catch (\Throwable $th) {
