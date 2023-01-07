@@ -13,18 +13,13 @@ class ProductController extends Controller
 {
   public function index(Request $request)
   {
-    $category = $request->input('category');
-    $tag = $request->input('tag');
-    $price = $request->input('price');
-    $sort = $request->input('sort');
-    $search = $request->input('search');
     try {
       $query = Product::query();
-      if($search){
+      if ($search = $request->input('search')) {
         $query = $query->where('name', 'like', "%$search%")
           ->orWhere('info', 'like', "%$search%");
       }
-      if ($price) {
+      if ($price = $request->input('price')) {
         $interval = explode(":", $price);
         if ($interval[0] === '') {
           $query = $query->where("price", '<=', $interval[1]);
@@ -35,13 +30,13 @@ class ProductController extends Controller
             ->where("price", '<=', $interval[1]);
         }
       }
-      if ($category) {
+      if ($category = $request->input('category')) {
         $query = $query->whereRelation('category', 'name', $category);
       }
-      if ($tag) {
+      if ($tag = $request->input('tag')) {
         $query = $query->whereRelation('tags', 'name', $tag);
       }
-      if ($sort) {
+      if ($sort = $request->input('sort')) {
         if (strpos($sort, ':')) {
           $directives = ['up' => 'asc', 'down' => 'desc'];
           [$column, $directive] = explode(":", $sort);
@@ -59,8 +54,7 @@ class ProductController extends Controller
   public function show($id)
   {
     try {
-      $product = Product::find($id);
-      if (!$product) {
+      if (!$product = Product::find($id)) {
         return response()->json(['error' => 'Product not found'], 404);
       }
     } catch (\Throwable $th) {
@@ -68,7 +62,6 @@ class ProductController extends Controller
     }
     return ProductResource::product($product);
   }
-
 
   public function store(Request $request)
   {
@@ -123,8 +116,7 @@ class ProductController extends Controller
       return response()->json($validator->errors(), 400);
     }
     try {
-      $product = Product::find($id);
-      if (!$product) {
+      if (!$product = Product::find($id)) {
         return response()->json(['error' => 'Product not found'], 404);
       }
       $product->update([
@@ -159,8 +151,7 @@ class ProductController extends Controller
   public function destroy($id)
   {
     try {
-      $product = Product::find($id);
-      if (!$product) {
+      if (!$product = Product::find($id)) {
         return response()->json(['error' => 'Product not found'], 404);
       }
       Storage::delete($product->images->map(fn ($image) => $image->url)->all());
