@@ -11,14 +11,49 @@ use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
-  public function index()
+  public function index(Request $request)
   {
+    $category = $request->input('category');
+    $tag = $request->input('tag');
+    $price = $request->input('price');
+    $sort = $request->input('sort');
+    $search = $request->input('search');
     try {
-      $products = ProductResource::products(Product::latest()->paginate(1));
-      return $products;
+      $query = Product::query();
+      if($search){
+        $query = $query->where('name', 'like', "%$search%")
+          ->orWhere('info', 'like', "%$search%");
+      }
+      if ($price) {
+        $interval = explode(":", $price);
+        if ($interval[0] === '') {
+          $query = $query->where("price", '<=', $interval[1]);
+        } else if ($interval[1] === '') {
+          $query = $query->where("price", '>=', $interval[0]);
+        } else {
+          $query = $query->where("price", '>=', $interval[0])
+            ->where("price", '<=', $interval[1]);
+        }
+      }
+      if ($category) {
+        $query = $query->whereRelation('category', 'name', $category);
+      }
+      if ($tag) {
+        $query = $query->whereRelation('tags', 'name', $tag);
+      }
+      if ($sort) {
+        if (strpos($sort, ':')) {
+          $directives = ['up' => 'asc', 'down' => 'desc'];
+          [$column, $directive] = explode(":", $sort);
+          $query = $query->orderBy($column, $directives[$directive]);
+        } else {
+          $query = $query->orderBy($sort);
+        }
+      }
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
+    return ProductResource::products($query->latest()->paginate(10));
   }
 
   public function show($id)
@@ -52,9 +87,9 @@ class ProductController extends Controller
       $product = Product::create([
         'user_id' => $request->user()->id,
         'category_id' => $request->category_id,
-        'name' => $request->get('name'),
-        'price' => $request->get('price'),
-        'info' => $request->get('info')
+        'name' => $request->input('name'),
+        'price' => $request->input('price'),
+        'info' => $request->input('info')
       ]);
       $product->tags()->attach($request->tags ?? []);
       if ($images = $request->file('images')) {
@@ -93,10 +128,10 @@ class ProductController extends Controller
         return response()->json(['error' => 'Product not found'], 404);
       }
       $product->update([
-        'category_id' => $request->get('category_id') ?? $product->cretgory_id,
-        'name' => $request->get('name') ?? $product->name,
-        'price' => $request->get('price') ?? $product->price,
-        'info' => $request->get('info') ?? $product->info
+        'category_id' => $request->input('category_id') ?? $product->cretgory_id,
+        'name' => $request->input('name') ?? $product->name,
+        'price' => $request->input('price') ?? $product->price,
+        'info' => $request->input('info') ?? $product->info
       ]);
       if ($request->tags) {
         $product->tags()->detach();
