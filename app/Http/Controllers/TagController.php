@@ -4,21 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\TagResource;
 use App\Models\Tag;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class TagController extends Controller
 {
-  public function index()
+  public function index(): JsonResponse
   {
     try {
-      return TagResource::collection(Tag::all());
+      return response()->json(TagResource::collection(Tag::all()));
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
   }
 
-  public function show($id)
+  public function show($id): JsonResponse
   {
     try {
       if (!$tag = Tag::find($id)) {
@@ -27,10 +28,10 @@ class TagController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new TagResource($tag);
+    return response()->json(new TagResource($tag));
   }
 
-  public function store(Request $request)
+  public function store(Request $request): JsonResponse
   {
     $validator = Validator::make($request->all(), [
       'name' => 'required|string|max:255'
@@ -45,10 +46,10 @@ class TagController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new TagResource($tag);
+    return response()->json(new TagResource($tag));
   }
 
-  public function update(Request $request, $id)
+  public function update(Request $request, $id): JsonResponse
   {
     $validator = Validator::make($request->all(), [
       'name' => 'nullable|string|max:255'
@@ -66,10 +67,10 @@ class TagController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new TagResource($tag);
+    return response()->json(new TagResource($tag));
   }
 
-  public function destroy($id)
+  public function destroy($id): JsonResponse
   {
     try {
       if (!$tag = Tag::find($id)) {
@@ -79,6 +80,6 @@ class TagController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new TagResource($tag);
+    return response()->json(new TagResource($tag));
   }
 }

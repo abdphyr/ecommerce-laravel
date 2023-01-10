@@ -5,22 +5,23 @@ namespace App\Http\Controllers;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use App\Models\Image;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class CategoryController extends Controller
 {
-  public function index()
+  public function index(): JsonResponse
   {
     try {
-      return CategoryResource::collection(Category::all());;
+      return response()->json(CategoryResource::collection(Category::all()));
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
   }
 
-  public function show($id)
+  public function show($id): JsonResponse
   {
     try {
       if (!$category = Category::find($id)) {
@@ -29,10 +30,10 @@ class CategoryController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new CategoryResource($category);
+    return response()->json(new CategoryResource($category));
   }
 
-  public function store(Request $request)
+  public function store(Request $request): JsonResponse
   {
     $validator = Validator::make($request->all(), [
       'name' => 'required|string|max:255',
@@ -59,10 +60,10 @@ class CategoryController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new CategoryResource($category);
+    return response()->json(new CategoryResource($category));
   }
 
-  public function update(Request $request, $id)
+  public function update(Request $request, $id): JsonResponse
   {
     $validator = Validator::make($request->all(), [
       'name' => 'nullable|string|max:255',
@@ -94,10 +95,10 @@ class CategoryController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new CategoryResource($category);
+    return response()->json(new CategoryResource($category));
   }
 
-  public function destroy($id)
+  public function destroy($id): JsonResponse
   {
     try {
       if (!$category = Category::find($id)) {
@@ -109,6 +110,6 @@ class CategoryController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new CategoryResource($category);
+    return response()->json(new CategoryResource($category));
   }
 }

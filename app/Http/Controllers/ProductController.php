@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Resources\ProductResource;
 use App\Models\Image;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
-  public function index(Request $request)
+  public function index(Request $request): JsonResponse
   {
     try {
       $query = Product::query();
@@ -48,10 +49,11 @@ class ProductController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return ProductResource::products($query->latest()->paginate(10));
+    $products = ProductResource::products($query->latest()->paginate(10));
+    return response()->json($products);
   }
 
-  public function show($id)
+  public function show($id): JsonResponse
   {
     try {
       if (!$product = Product::find($id)) {
@@ -60,10 +62,10 @@ class ProductController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return ProductResource::product($product);
+    return response()->json(ProductResource::product($product));
   }
 
-  public function store(Request $request)
+  public function store(Request $request): JsonResponse
   {
     $validator = Validator::make($request->all(), [
       'category_id' => 'required|integer',
@@ -99,10 +101,10 @@ class ProductController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return ProductResource::product($product);
+    return response()->json(ProductResource::product($product));
   }
 
-  public function update(Request $request, $id)
+  public function update(Request $request, $id): JsonResponse
   {
     $validator = Validator::make($request->all(), [
       'category_id' => 'nullable|integer',
@@ -145,10 +147,10 @@ class ProductController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return ProductResource::product($product);
+    return response()->json(ProductResource::product($product));
   }
 
-  public function destroy($id)
+  public function destroy($id): JsonResponse
   {
     try {
       if (!$product = Product::find($id)) {
@@ -160,6 +162,6 @@ class ProductController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return new ProductResource($product);
+    return response()->json(ProductResource::product($product));
   }
 }

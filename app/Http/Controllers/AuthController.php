@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -12,7 +13,7 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
-  public function login(Request $request)
+  public function login(Request $request): JsonResponse
   {
     $credentials = $request->only(['email', 'password']);
     $validator = Validator::make($request->all(), [
@@ -35,7 +36,7 @@ class AuthController extends Controller
     return response()->json(compact('token', 'user'));
   }
 
-  public function register(Request $request)
+  public function register(Request $request): JsonResponse
   {
     $validator = Validator::make($request->all(), [
       'name' => 'required|string|max:255',
@@ -62,7 +63,7 @@ class AuthController extends Controller
     return response()->json(compact('token', 'user'), 201);
   }
 
-  public function logout()
+  public function logout(): JsonResponse
   {
     try {
       JWTAuth::invalidate();
@@ -74,12 +75,12 @@ class AuthController extends Controller
     ]);
   }
 
-  public function user(Request $request)
+  public function user(Request $request): JsonResponse
   {
-    return new UserResource($request->user());
+    return response()->json(new UserResource($request->user()));
   }
 
-  public function refreshToken()
+  public function refreshToken(): JsonResponse
   {
     try {
       $refreshToken = JWTAuth::refresh();
