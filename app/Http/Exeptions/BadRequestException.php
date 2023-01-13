@@ -6,5 +6,12 @@ use \Exception;
 
 class BadRequestException extends Exception
 {
-  protected $code = 400;
+  public function __construct($message)
+  {
+    parent::__construct(json_encode($message), 400);
+  }
+  public function getError()
+  {
+    return ['error' => json_decode($this->message)];
+  }
 }
