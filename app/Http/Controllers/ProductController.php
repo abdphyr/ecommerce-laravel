@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Exeptions\BadRequestException;
+use App\Http\Exeptions\NotFoundException;
 use App\Http\Resources\ProductResource;
 use App\Models\Image;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
@@ -46,39 +47,39 @@ class ProductController extends Controller
           $query = $query->orderBy($sort);
         }
       }
+      $products = $query->latest()->paginate(10);
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    $products = ProductResource::products($query->latest()->paginate(10));
-    return response()->json($products);
+    return response()->json(ProductResource::products($products));
   }
 
   public function show($id): JsonResponse
   {
     try {
       if (!$product = Product::find($id)) {
-        return response()->json(['error' => 'Product not found'], 404);
+        throw new NotFoundException('Product not found');
       }
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
     }
     return response()->json(ProductResource::product($product));
   }
 
   public function store(Request $request): JsonResponse
   {
-    $validator = Validator::make($request->all(), [
-      'category_id' => 'required|integer',
-      'name' => 'required|string|max:255',
-      'price' => 'required|integer',
-      'info' => 'required|string',
-      'tags' => 'nullable|array',
-      'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-    ]);
-    if ($validator->fails()) {
-      return response()->json($validator->errors(), 400);
-    }
     try {
+      $validator = validator($request->all(), [
+        'category_id' => 'required|integer',
+        'name' => 'required|string|max:255',
+        'price' => 'required|integer',
+        'info' => 'required|string',
+        'tags' => 'nullable|array',
+        'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+      ]);
+      if ($validator->fails()) {
+        throw new BadRequestException($validator->errors());
+      }
       $product = Product::create([
         'user_id' => $request->user()->id,
         'category_id' => $request->category_id,
@@ -98,28 +99,30 @@ class ProductController extends Controller
           ]);
         }
       }
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (BadRequestException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (\Throwable $e) {
+      return response()->json(['error' => $e->getMessage()], 500);
     }
     return response()->json(ProductResource::product($product));
   }
 
   public function update(Request $request, $id): JsonResponse
   {
-    $validator = Validator::make($request->all(), [
-      'category_id' => 'nullable|integer',
-      'name' => 'nullable|string|max:255',
-      'price' => 'nullable|integer',
-      'info' => 'nullable|string',
-      'tags' => 'nullable|array',
-      'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-    ]);
-    if ($validator->fails()) {
-      return response()->json($validator->errors(), 400);
-    }
     try {
+      $validator = validator($request->all(), [
+        'category_id' => 'nullable|integer',
+        'name' => 'nullable|string|max:255',
+        'price' => 'nullable|integer',
+        'info' => 'nullable|string',
+        'tags' => 'nullable|array',
+        'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+      ]);
+      if ($validator->fails()) {
+        throw new BadRequestException($validator->errors());
+      }
       if (!$product = Product::find($id)) {
-        return response()->json(['error' => 'Product not found'], 404);
+        throw new NotFoundException('Product not found');
       }
       $product->update([
         'category_id' => $request->input('category_id') ?? $product->cretgory_id,
@@ -144,8 +147,12 @@ class ProductController extends Controller
           ]);
         }
       }
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (BadRequestException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (\Throwable $e) {
+      return response()->json(['error' => $e->getMessage()], 500);
     }
     return response()->json(ProductResource::product($product));
   }
@@ -154,11 +161,13 @@ class ProductController extends Controller
   {
     try {
       if (!$product = Product::find($id)) {
-        return response()->json(['error' => 'Product not found'], 404);
+        throw new NotFoundException('Product not found');
       }
       Storage::disk('public')->delete($product->images->map(fn ($image) => $image->url)->all());
       $product->images()->delete();
       $product->delete();
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
