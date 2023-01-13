@@ -54,7 +54,8 @@ class CommentController extends Controller
         "body" => $request->input('body')
       ]);
     } catch (BadRequestException $e) {
-      return response()->json(['error' => json_decode($e->getMessage())], 400);
+      $error = json_decode($e->getMessage());
+      return response()->json(compact('error'), $e->getCode());
     } catch (\Throwable $e) {
       return response()->json(['error' => $e->getMessage()], 500);
     }
@@ -77,7 +78,8 @@ class CommentController extends Controller
         'body' => $request->input('body') ?? $comment->body
       ]);
     } catch (BadRequestException $e) {
-      return response()->json(['error' => json_decode($e->getMessage())], 400);
+      $error = json_decode($e->getMessage());
+      return response()->json(compact('error'), $e->getCode());
     } catch (NotFoundException $e) {
       return response()->json(['error' => $e->getMessage()], 404);
     } catch (\Throwable $e) {
