@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Exeptions\BadRequestException;
+use App\Http\Exeptions\NotFoundException;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use App\Models\Image;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 
 class CategoryController extends Controller
 {
@@ -25,25 +26,25 @@ class CategoryController extends Controller
   {
     try {
       if (!$category = Category::find($id)) {
-        return response()->json(['error' => 'Category not found'], 404);
+        throw new NotFoundException('Category not found');
       }
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
     }
     return response()->json(new CategoryResource($category));
   }
 
   public function store(Request $request): JsonResponse
   {
-    $validator = Validator::make($request->all(), [
-      'name' => 'required|string|max:255',
-      'info' => 'required|string',
-      'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-    ]);
-    if ($validator->fails()) {
-      return response()->json($validator->errors(), 400);
-    }
     try {
+      $validator = validator($request->all(), [
+        'name' => 'required|string|max:255',
+        'info' => 'required|string',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+      ]);
+      if ($validator->fails()) {
+        throw new BadRequestException($validator->errors());
+      }
       $category = Category::create([
         'name' => $request->input('name'),
         'info' => $request->input('info')
@@ -57,25 +58,27 @@ class CategoryController extends Controller
           'imageable_type' => Category::class
         ]);
       }
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (BadRequestException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (\Throwable $e) {
+      return response()->json(['error' => $e->getMessage()], 500);
     }
-    return response()->json(new CategoryResource($category));
+    return response()->json(new CategoryResource($category), 201);
   }
 
-  public function update(Request $request, $id): JsonResponse
+  public function update(Request $request, $id)
   {
-    $validator = Validator::make($request->all(), [
-      'name' => 'nullable|string|max:255',
-      'info' => 'nullable|string',
-      'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-    ]);
-    if ($validator->fails()) {
-      return response()->json($validator->errors(), 400);
-    }
     try {
+      $validator = validator($request->all(), [
+        'name' => 'nullable|string|max:255',
+        'info' => 'nullable|string',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+      ]);
+      if ($validator->fails()) {
+        throw new BadRequestException($validator->errors());
+      }
       if (!$category = Category::find($id)) {
-        return response()->json(['error' => 'Category not found'], 404);
+        throw new NotFoundException('Category not found');
       }
       $category->update([
         'name' => $request->input('name') ?? $category->name,
@@ -92,8 +95,12 @@ class CategoryController extends Controller
           'imageable_type' => Category::class
         ]);
       }
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (BadRequestException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (\Throwable $e) {
+      return response()->json(['error' => $e->getMessage()], 500);
     }
     return response()->json(new CategoryResource($category));
   }
@@ -102,11 +109,13 @@ class CategoryController extends Controller
   {
     try {
       if (!$category = Category::find($id)) {
-        return response()->json(['error' => 'Category not found'], 404);
+        throw new NotFoundException('Category not found');
       }
       Storage::disk('public')->delete($category->image->url);
       $category->image()->delete();
       $category->delete();
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
