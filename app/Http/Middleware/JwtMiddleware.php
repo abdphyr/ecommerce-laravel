@@ -15,14 +15,12 @@ class JwtMiddleware extends BaseMiddleware
   {
     try {
       $user = JWTAuth::parseToken()->authenticate();
+    } catch (TokenExpiredException $e) {
+      return response()->json(['error' => 'Token is expired'], 401);
+    } catch (TokenInvalidException $e) {
+      return response()->json(['error' => 'Token is invalid'], 401);
     } catch (Exception $e) {
-      if ($e instanceof TokenInvalidException) {
-        return response()->json(['error' => 'Token is invalid'], 401);
-      } else if ($e instanceof TokenExpiredException) {
-        return response()->json(['error' => 'Token is expired'], 401);
-      } else {
-        return response()->json(['error' => 'Unauthorized'], 401);
-      }
+      return response()->json(['error' => 'Unauthorized'], 401);
     }
     return $next($request);
   }
