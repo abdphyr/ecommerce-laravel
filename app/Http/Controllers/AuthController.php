@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Exeptions\BadRequestException;
+use App\Http\Exeptions\NotFoundException;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -15,22 +17,25 @@ class AuthController extends Controller
 {
   public function login(Request $request): JsonResponse
   {
-    $credentials = $request->only(['email', 'password']);
-    $validator = Validator::make($request->all(), [
-      'email' => 'required|string|email|max:255',
-      'password' => 'required|string|min:6',
-    ]);
-    if ($validator->fails()) {
-      return response()->json($validator->errors(), 400);
-    }
     try {
-      $token = JWTAuth::attempt($credentials);
-      $user = User::where('email', $request->email)->first();
-      if (!$token || !$user) {
-        return response()->json(['error' => 'Invalid credentials'], 400);
+      $credentials = $request->only(['email', 'password']);
+      $validator = validator($request->all(), [
+        'email' => 'required|string|email|max:255',
+        'password' => 'required|string|min:6',
+      ]);
+      if ($validator->fails()) {
+        throw new BadRequestException($validator->errors());
       }
+      if (!$token = JWTAuth::attempt($credentials)) {
+        throw new NotFoundException('Invalid credentials');
+      }
+      $user = User::where('email', $request->email)->first();
+    } catch (BadRequestException $e) {
+      return response()->json($e->getError(), $e->getCode());
     } catch (JWTException $e) {
       return response()->json(['error' => 'Could not create token'], 500);
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
     }
     $user = new UserResource($user);
     return response()->json(compact('token', 'user'));
@@ -38,16 +43,16 @@ class AuthController extends Controller
 
   public function register(Request $request): JsonResponse
   {
-    $validator = Validator::make($request->all(), [
-      'name' => 'required|string|max:255',
-      'email' => 'required|string|email|max:255|unique:users',
-      'password' => 'required|string|min:6|confirmed',
-      'phone' => 'nullable'
-    ]);
-    if ($validator->fails()) {
-      return response()->json($validator->errors(), 400);
-    }
     try {
+      $validator = validator($request->all(), [
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|min:6|confirmed',
+        'phone' => 'nullable'
+      ]);
+      if ($validator->fails()) {
+        throw new BadRequestException($validator->errors());
+      }
       $user = User::create([
         'name' => $request->input('name'),
         'email' => $request->input('email'),
@@ -56,6 +61,10 @@ class AuthController extends Controller
       ]);
       $user->roles()->attach([3]);
       $token = JWTAuth::fromUser($user);
+    } catch (BadRequestException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (JWTException $e) {
+      return response()->json(['error' => 'Could not create token'], 500);
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
@@ -70,9 +79,7 @@ class AuthController extends Controller
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
-    return response()->json([
-      'message' => 'Successfully logged out',
-    ]);
+    return response()->json(['message' => 'Successfully logged out']);
   }
 
   public function user(Request $request): JsonResponse
