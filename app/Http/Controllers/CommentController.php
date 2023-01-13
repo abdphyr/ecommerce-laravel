@@ -59,7 +59,7 @@ class CommentController extends Controller
     } catch (\Throwable $e) {
       return response()->json(['error' => $e->getMessage()], 500);
     }
-    return response()->json(new CommentResource($newComment));
+    return response()->json(new CommentResource($newComment), 201);
   }
 
   public function update(Request $request, $id)
@@ -81,7 +81,7 @@ class CommentController extends Controller
       $error = json_decode($e->getMessage());
       return response()->json(compact('error'), $e->getCode());
     } catch (NotFoundException $e) {
-      return response()->json(['error' => $e->getMessage()], 404);
+      return response()->json(['error' => $e->getMessage()], $e->getCode());
     } catch (\Throwable $e) {
       return response()->json(['error' => $e->getMessage()], 500);
     }
