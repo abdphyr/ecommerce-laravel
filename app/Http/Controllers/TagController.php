@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Exeptions\BadRequestException;
+use App\Http\Exeptions\NotFoundException;
 use App\Http\Resources\TagResource;
 use App\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class TagController extends Controller
 {
@@ -14,8 +15,8 @@ class TagController extends Controller
   {
     try {
       return response()->json(TagResource::collection(Tag::all()));
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (\Throwable $e) {
+      return response()->json(['error' => $e->getMessage()], 500);
     }
   }
 
@@ -23,49 +24,55 @@ class TagController extends Controller
   {
     try {
       if (!$tag = Tag::find($id)) {
-        return response()->json(['error' => 'Tag not found'], 404);
+        throw new NotFoundException('Tag not found');
       }
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
     }
     return response()->json(new TagResource($tag));
   }
 
   public function store(Request $request): JsonResponse
   {
-    $validator = Validator::make($request->all(), [
-      'name' => 'required|string|max:255'
-    ]);
-    if ($validator->fails()) {
-      return response()->json($validator->errors(), 400);
-    }
     try {
+      $validator = validator($request->all(), [
+        'name' => 'required|string|max:255'
+      ]);
+      if ($validator->fails()) {
+        throw new BadRequestException($validator->errors());
+      }
       $tag = Tag::create([
         'name' => $request->input('name')
       ]);
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (BadRequestException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (\Throwable $e) {
+      return response()->json(['error' => $e->getMessage()], 500);
     }
-    return response()->json(new TagResource($tag));
+    return response()->json(new TagResource($tag), 201);
   }
 
   public function update(Request $request, $id): JsonResponse
   {
-    $validator = Validator::make($request->all(), [
-      'name' => 'nullable|string|max:255'
-    ]);
-    if ($validator->fails()) {
-      return response()->json($validator->errors(), 400);
-    }
     try {
+      $validator = validator($request->all(), [
+        'name' => 'nullable|string|max:255'
+      ]);
+      if ($validator->fails()) {
+        throw new BadRequestException($validator->errors());
+      }
       if (!$tag = Tag::find($id)) {
-        return response()->json(['error' => 'Tag not found'], 404);
+        throw new NotFoundException('Tag not found');
       }
       $tag->update([
         'name' => $request->input('name') ?? $tag->name
       ]);
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (BadRequestException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (\Throwable $e) {
+      return response()->json(['error' => $e->getMessage()], 500);
     }
     return response()->json(new TagResource($tag));
   }
@@ -74,11 +81,13 @@ class TagController extends Controller
   {
     try {
       if (!$tag = Tag::find($id)) {
-        return response()->json(['error' => 'Tag not found'], 404);
+        throw new NotFoundException('Tag not found');
       }
       $tag->delete();
-    } catch (\Throwable $th) {
-      return response()->json(['error' => $th->getMessage()], 500);
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (\Throwable $e) {
+      return response()->json(['error' => $e->getMessage()], 500);
     }
     return response()->json(new TagResource($tag));
   }
