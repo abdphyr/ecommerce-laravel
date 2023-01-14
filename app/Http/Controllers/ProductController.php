@@ -7,12 +7,17 @@ use App\Http\Exeptions\NotFoundException;
 use App\Http\Resources\ProductResource;
 use App\Models\Image;
 use App\Models\Product;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
+  public function __construct()
+  {
+    $this->middleware('auth.jwt')->except(['index', 'show']);
+  }
   public function index(Request $request): JsonResponse
   {
     try {
@@ -107,7 +112,7 @@ class ProductController extends Controller
     return response()->json(ProductResource::product($product));
   }
 
-  public function update(Request $request, $id): JsonResponse
+  public function update(Request $request, $id)
   {
     try {
       $validator = validator($request->all(), [
@@ -124,6 +129,7 @@ class ProductController extends Controller
       if (!$product = Product::find($id)) {
         throw new NotFoundException('Product not found');
       }
+      $this->authorize('update', $product);
       $product->update([
         'category_id' => $request->input('category_id') ?? $product->cretgory_id,
         'name' => $request->input('name') ?? $product->name,
@@ -151,6 +157,8 @@ class ProductController extends Controller
       return response()->json($e->getError(), $e->getCode());
     } catch (NotFoundException $e) {
       return response()->json($e->getError(), $e->getCode());
+    } catch (AuthorizationException $e) {
+      return response()->json(['error' => $e->getMessage()], 403);
     } catch (\Throwable $e) {
       return response()->json(['error' => $e->getMessage()], 500);
     }
@@ -163,11 +171,14 @@ class ProductController extends Controller
       if (!$product = Product::find($id)) {
         throw new NotFoundException('Product not found');
       }
+      $this->authorize('delete', $product);
       Storage::disk('public')->delete($product->images->map(fn ($image) => $image->url)->all());
       $product->images()->delete();
       $product->delete();
     } catch (NotFoundException $e) {
       return response()->json($e->getError(), $e->getCode());
+    } catch (AuthorizationException $e) {
+      return response()->json(['error' => $e->getMessage()], 403);
     } catch (\Throwable $th) {
       return response()->json(['error' => $th->getMessage()], 500);
     }
