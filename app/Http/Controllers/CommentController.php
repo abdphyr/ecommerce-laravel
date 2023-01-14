@@ -13,6 +13,10 @@ use Illuminate\Http\Request;
 
 class CommentController extends Controller
 {
+  public function __construct()
+  {
+    $this->middleware('auth.jwt')->except('index');
+  }
   public function index(Request $request)
   {
     try {
@@ -74,6 +78,7 @@ class CommentController extends Controller
       if (!$comment = Comment::find($id)) {
         throw new NotFoundException('Comment not found');
       }
+      $this->authorize('update', $comment);
       $comment->update([
         'body' => $request->input('body') ?? $comment->body
       ]);
@@ -95,6 +100,7 @@ class CommentController extends Controller
       if (!$comment = Comment::find($id)) {
         throw new NotFoundException('Comment not found');
       }
+      $this->authorize('delete', $comment);
       $comment->delete();
     } catch (NotFoundException $e) {
       return response()->json($e->getError(), $e->getCode());
