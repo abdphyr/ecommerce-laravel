@@ -7,6 +7,7 @@ use App\Http\Exeptions\NotFoundException;
 use App\Http\Resources\CommentResource;
 use App\Models\Comment;
 use App\Models\Product;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,7 +22,7 @@ class CommentController extends Controller
       $comments = CommentResource::collection($product->comments);
       $count = $product->comments()->count();
     } catch (NotFoundException $e) {
-      return response()->json(['error' => $e->getMessage()], $e->getCode());
+      return response()->json($e->getError(), $e->getCode());
     }
     return response()->json(compact('comments', 'count'));
   }
@@ -33,7 +34,7 @@ class CommentController extends Controller
         throw new NotFoundException('Comment not found');
       }
     } catch (NotFoundException $e) {
-      return response()->json(['error' => $e->getMessage()], $e->getCode());
+      return response()->json($e->getError(), $e->getCode());
     }
     return response()->json(new CommentResource($comment));
   }
@@ -54,8 +55,7 @@ class CommentController extends Controller
         "body" => $request->input('body')
       ]);
     } catch (BadRequestException $e) {
-      $error = json_decode($e->getMessage());
-      return response()->json(compact('error'), $e->getCode());
+      return response()->json($e->getError(), $e->getCode());
     } catch (\Throwable $e) {
       return response()->json(['error' => $e->getMessage()], 500);
     }
@@ -78,10 +78,11 @@ class CommentController extends Controller
         'body' => $request->input('body') ?? $comment->body
       ]);
     } catch (BadRequestException $e) {
-      $error = json_decode($e->getMessage());
-      return response()->json(compact('error'), $e->getCode());
+      return response()->json($e->getError(), $e->getCode());
     } catch (NotFoundException $e) {
-      return response()->json(['error' => $e->getMessage()], $e->getCode());
+      return response()->json($e->getError(), $e->getCode());
+    } catch (AuthorizationException $e) {
+      return response()->json(['error' => $e->getMessage()], 403);
     } catch (\Throwable $e) {
       return response()->json(['error' => $e->getMessage()], 500);
     }
@@ -95,8 +96,10 @@ class CommentController extends Controller
         throw new NotFoundException('Comment not found');
       }
       $comment->delete();
-    } catch (NotFoundException $th) {
-      return response()->json(['error' => $th->getMessage()], $th->getCode());
+    } catch (NotFoundException $e) {
+      return response()->json($e->getError(), $e->getCode());
+    } catch (AuthorizationException $e) {
+      return response()->json(['error' => $e->getMessage()], 403);
     }
     return response()->json(new CommentResource($comment));
   }
