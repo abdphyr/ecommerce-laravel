@@ -7,12 +7,17 @@ use App\Http\Exeptions\NotFoundException;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use App\Models\Image;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
+  public function __construct()
+  {
+    $this->middleware('auth.jwt')->except('index');
+  }
   public function index(): JsonResponse
   {
     try {
@@ -37,6 +42,7 @@ class CategoryController extends Controller
   public function store(Request $request): JsonResponse
   {
     try {
+      $this->authorize('create', Category::class);
       $validator = validator($request->all(), [
         'name' => 'required|string|max:255',
         'info' => 'required|string',
@@ -58,6 +64,8 @@ class CategoryController extends Controller
           'imageable_type' => Category::class
         ]);
       }
+    } catch (AuthorizationException $e) {
+      return response()->json(['error' => $e->getMessage()], 403);
     } catch (BadRequestException $e) {
       return response()->json($e->getError(), $e->getCode());
     } catch (\Throwable $e) {
@@ -69,6 +77,7 @@ class CategoryController extends Controller
   public function update(Request $request, $id)
   {
     try {
+      $this->authorize('update', Category::class);
       $validator = validator($request->all(), [
         'name' => 'nullable|string|max:255',
         'info' => 'nullable|string',
@@ -95,6 +104,8 @@ class CategoryController extends Controller
           'imageable_type' => Category::class
         ]);
       }
+    } catch (AuthorizationException $e) {
+      return response()->json(['error' => $e->getMessage()], 403);
     } catch (BadRequestException $e) {
       return response()->json($e->getError(), $e->getCode());
     } catch (NotFoundException $e) {
@@ -108,12 +119,16 @@ class CategoryController extends Controller
   public function destroy($id): JsonResponse
   {
     try {
+      $this->authorize('delete', Category::class);
+      return response()->json(['ok']);
       if (!$category = Category::find($id)) {
         throw new NotFoundException('Category not found');
       }
       Storage::disk('public')->delete($category->image->url);
       $category->image()->delete();
       $category->delete();
+    } catch (AuthorizationException $e) {
+      return response()->json(['error' => $e->getMessage()], 403);
     } catch (NotFoundException $e) {
       return response()->json($e->getError(), $e->getCode());
     } catch (\Throwable $th) {
